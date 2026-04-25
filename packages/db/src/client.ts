@@ -10,8 +10,21 @@ const MIGRATIONS_FOLDER = fileURLToPath(new URL("./migrations", import.meta.url)
 const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
 const MIGRATIONS_JOURNAL_JSON = fileURLToPath(new URL("./migrations/meta/_journal.json", import.meta.url));
 
+function isLocalUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+}
+
+function resolveSslOptions(url: string): { rejectUnauthorized: false } | false {
+  return isLocalUrl(url) ? false : { rejectUnauthorized: false };
+}
+
 function createUtilitySql(url: string) {
-  return postgres(url, { max: 1, onnotice: () => {}, ssl: { rejectUnauthorized: false } });
+  return postgres(url, { max: 1, onnotice: () => {}, ssl: resolveSslOptions(url) });
 }
 
 function isSafeIdentifier(value: string): boolean {
@@ -46,7 +59,7 @@ export type MigrationState =
     };
 
 export function createDb(url: string) {
-  const sql = postgres(url, { ssl: { rejectUnauthorized: false } });
+  const sql = postgres(url, { ssl: resolveSslOptions(url) });
   return drizzlePg(sql, { schema });
 }
 
