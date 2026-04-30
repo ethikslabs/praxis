@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRAXIS OPS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #070A0E;
+      --surface:      #0D1117;
+      --surface-2:    #161B22;
+      --border:       #21262D;
+      --border-hi:    #30363D;
+      --text:         #E6EDF3;
+      --muted:        #7D8590;
+      --dim:          #484F58;
+      --cyan:         #58A6FF;
+      --green:        #3FB950;
+      --amber:        #D29922;
+      --red:          #F85149;
+      --font-mono:    'Space Mono', monospace;
+      --font-sans:    'Syne', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ── Layout ── */
+    #app {
+      display: grid;
+      grid-template-rows: 44px 1fr;
+      height: 100vh;
+      padding: 14px 16px 16px;
+      gap: 12px;
+    }
+
+    /* ── Header ── */
+    #header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #logo {
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 17px;
+      letter-spacing: 0.12em;
+      color: var(--text);
+    }
+    #logo span { color: var(--cyan); }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      animation: pulse-green 2.4s ease-in-out infinite;
+    }
+    .live-dot.disconnected { background: var(--red); animation: none; }
+    .live-dot.connecting   { background: var(--amber); animation: pulse-amber 1s ease-in-out infinite; }
+
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 0 0 rgba(63,185,80,.5); }
+      50%      { box-shadow: 0 0 0 5px rgba(63,185,80,0); }
+    }
+    @keyframes pulse-amber {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .4; }
+    }
+
+    #status-text {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+    }
+
+    #company-selector {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      outline: none;
+    }
+    #company-selector:focus { border-color: var(--cyan); }
+
+    #clock {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Main grid ── */
+    #main {
+      display: grid;
+      grid-template-rows: 130px 1fr;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    /* ── Stats row ── */
+    #stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      overflow: hidden;
+    }
+
+    .card-label {
+      font-size: 9px;
+      letter-spacing: .15em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* Agents */
+    .agent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px 16px;
+    }
+    .agent-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .s-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .s-running { background: var(--cyan); animation: blink-cyan 1.4s ease-in-out infinite; }
+    .s-active  { background: var(--dim); }
+    .s-error   { background: var(--red); }
+    .s-paused  { background: var(--amber); }
+    @keyframes blink-cyan { 0%,100%{opacity:1}50%{opacity:.35} }
+
+    .n { font-weight: 700; color: var(--text); margin-right: 1px; }
+    .l { font-size: 11px; color: var(--muted); }
+
+    /* Tasks */
+    .task-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+    }
+    .task-row { line-height: 1.3; }
+    .big {
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1;
+      margin-bottom: 1px;
+    }
+    .big.c-active  { color: var(--cyan); }
+    .big.c-open    { color: var(--text); }
+    .big.c-blocked { color: var(--red); }
+    .big.c-done    { color: var(--green); }
+
+    /* Approvals */
+    .approval-n {
+      font-weight: 700;
+      font-size: 38px;
+      line-height: 1;
+      color: var(--text);
+      transition: color .3s;
+    }
+    .approval-n.hot { color: var(--amber); animation: flash .2s ease 3; }
+    @keyframes flash { 0%,100%{opacity:1}50%{opacity:.3} }
+
+    .approval-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .open-link {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--cyan);
+      text-decoration: none;
+      letter-spacing: .04em;
+    }
+    .open-link:hover { text-decoration: underline; }
+
+    /* Cost */
+    .cost-n {
+      font-weight: 700;
+      font-size: 24px;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .cost-of { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+    .bar-track {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--green);
+      transition: width .6s ease, background .4s;
+    }
+    .bar-fill.warn   { background: var(--amber); }
+    .bar-fill.danger { background: var(--red); }
+    .cost-pct { font-size: 11px; color: var(--muted); }
+
+    /* ── Activity feed ── */
+    #activity-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    #act-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #act-header .card-label { margin-bottom: 0; }
+
+    #new-badge {
+      display: none;
+      font-size: 9px;
+      background: var(--cyan);
+      color: var(--bg);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+
+    #feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    #feed::-webkit-scrollbar { width: 3px; }
+    #feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .act-item {
+      display: grid;
+      grid-template-columns: 72px 80px 130px 1fr;
+      gap: 0 10px;
+      padding: 5px 16px;
+      font-size: 12px;
+      border-left: 2px solid transparent;
+      transition: background .3s, border-color .3s;
+    }
+    .act-item.fresh {
+      border-left-color: var(--cyan);
+      background: rgba(88,166,255,.05);
+      animation: slide-in .25s ease;
+    }
+    @keyframes slide-in {
+      from { opacity:0; transform: translateX(-6px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    .at  { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .aa  { color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .aac {
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 3px;
+      background: var(--surface-2);
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: .02em;
+    }
+    .ae { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color: var(--text); }
+
+    #feed-empty { display:none; padding: 16px; font-size:12px; color:var(--dim); }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 100;
+    }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2px solid var(--border);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .12em;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-label">CONNECTING TO PRAXIS</div>
+</div>
+
+<div id="app" style="display:none">
+  <div id="header">
+    <div id="logo">PRAXIS<span>.</span></div>
+    <div class="live-dot connecting" id="dot"></div>
+    <div id="status-text">connecting</div>
+    <select id="company-selector" style="display:none"></select>
+    <div id="clock"></div>
+  </div>
+
+  <div id="main">
+    <div id="stats">
+
+      <!-- Agents -->
+      <div class="card">
+        <div class="card-label">Agents</div>
+        <div class="agent-grid">
+          <div class="agent-row"><div class="s-dot s-running"></div><span class="n" id="a-run">—</span><span class="l">running</span></div>
+          <div class="agent-row"><div class="s-dot s-active"></div><span class="n" id="a-idle">—</span><span class="l">active</span></div>
+          <div class="agent-row"><div class="s-dot s-error"></div><span class="n" id="a-err">—</span><span class="l">error</span></div>
+          <div class="agent-row"><div class="s-dot s-paused"></div><span class="n" id="a-pause">—</span><span class="l">paused</span></div>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div class="card">
+        <div class="card-label">Tasks</div>
+        <div class="task-grid">
+          <div class="task-row"><div class="big c-active" id="t-active">—</div><div class="l">in progress</div></div>
+          <div class="task-row"><div class="big c-open"   id="t-open">—</div><div class="l">open</div></div>
+          <div class="task-row"><div class="big c-blocked" id="t-blocked">—</div><div class="l">blocked</div></div>
+          <div class="task-row"><div class="big c-done"   id="t-done">—</div><div class="l">done</div></div>
+        </div>
+      </div>
+
+      <!-- Approvals -->
+      <div class="card">
+        <div class="card-label">Approvals</div>
+        <div class="approval-n" id="ap-n">—</div>
+        <div class="approval-sub">pending</div>
+        <a class="open-link" href="http://127.0.0.1:3100" target="_blank">open praxis →</a>
+      </div>
+
+      <!-- Cost -->
+      <div class="card">
+        <div class="card-label">This Month</div>
+        <div class="cost-n" id="cost-n">—</div>
+        <div class="cost-of" id="cost-of">of — budget</div>
+        <div class="bar-track"><div class="bar-fill" id="bar" style="width:0%"></div></div>
+        <div class="cost-pct" id="cost-pct">—%</div>
+      </div>
+
+    </div>
+
+    <!-- Feed -->
+    <div id="activity-wrap">
+      <div id="act-header">
+        <div class="card-label">Live Activity</div>
+        <div id="new-badge"></div>
+      </div>
+      <div id="feed">
+        <div id="feed-empty">No activity yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE = 'http://127.0.0.1:3100/api';
+  let companyId = null;
+  let ws = null;
+  let wsTimer = null;
+  let pollTimer = null;
+  let newCount = 0;
+  let badgeTimer = null;
+  let prevApprovals = null;
+
+  // ── API ─────────────────────────────────────────────────────────────────
+
+  async function get(path) {
+    const r = await fetch(BASE + path, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) throw new Error(r.status + ' ' + path);
+    return r.json();
+  }
+
+  // ── Formatting ───────────────────────────────────────────────────────────
+
+  const fmt$ = c => '$' + (c / 100).toFixed(2);
+
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleTimeString('en-AU', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+  }
+
+  // ── Clock ────────────────────────────────────────────────────────────────
+
+  function tick() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-AU', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+  }
+  setInterval(tick, 1000);
+  tick();
+
+  // ── Status dot ───────────────────────────────────────────────────────────
+
+  function setDot(state, label) {
+    const dot = document.getElementById('dot');
+    dot.className = 'live-dot ' + (state === 'live' ? '' : state);
+    document.getElementById('status-text').textContent = label;
+  }
+
+  // ── Dashboard ────────────────────────────────────────────────────────────
+
+  async function loadDashboard() {
+    if (!companyId) return;
+    try {
+      const d = await get(`/companies/${companyId}/dashboard`);
+
+      // Agents
+      document.getElementById('a-run').textContent   = d.agents?.running ?? 0;
+      document.getElementById('a-idle').textContent  = d.agents?.active  ?? 0;
+      document.getElementById('a-err').textContent   = d.agents?.error   ?? 0;
+      document.getElementById('a-pause').textContent = d.agents?.paused  ?? 0;
+
+      // Tasks
+      document.getElementById('t-active').textContent  = d.tasks?.inProgress ?? 0;
+      document.getElementById('t-open').textContent    = d.tasks?.open       ?? 0;
+      document.getElementById('t-blocked').textContent = d.tasks?.blocked    ?? 0;
+      document.getElementById('t-done').textContent    = d.tasks?.done       ?? 0;
+
+      // Approvals — flash if count increased
+      const pending = d.pendingApprovals ?? 0;
+      const apEl = document.getElementById('ap-n');
+      apEl.textContent = pending;
+      if (prevApprovals !== null && pending > prevApprovals) {
+        apEl.classList.add('hot');
+        setTimeout(() => apEl.classList.remove('hot'), 700);
+      }
+      prevApprovals = pending;
+
+      // Cost
+      const spend  = d.costs?.monthSpendCents  ?? 0;
+      const budget = d.costs?.monthBudgetCents ?? 0;
+      const pct    = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+      document.getElementById('cost-n').textContent  = fmt$(spend);
+      document.getElementById('cost-of').textContent = `of ${fmt$(budget)} budget`;
+      const bar = document.getElementById('bar');
+      bar.style.width = Math.min(pct, 100) + '%';
+      bar.className   = 'bar-fill' + (pct > 90 ? ' danger' : pct > 70 ? ' warn' : '');
+      document.getElementById('cost-pct').textContent = pct + '%';
+
+    } catch (e) {
+      console.error('dashboard:', e.message);
+    }
+  }
+
+  // ── Activity feed ─────────────────────────────────────────────────────────
+
+  function addItem(item, isNew) {
+    const feed = document.getElementById('feed');
+    document.getElementById('feed-empty').style.display = 'none';
+
+    const el  = document.createElement('div');
+    el.className = 'act-item' + (isNew ? ' fresh' : '');
+
+    const time   = item.createdAt ? fmtTime(item.createdAt) : '—';
+    const actor  = (item.actorId  || item.actorType || '—').slice(0, 10);
+    const action = item.action    || '—';
+    const entity = item.entityId
+      ? `${item.entityType ?? ''} ${item.entityId.slice(0, 10)}`
+      : (item.entityType ?? '—');
+
+    el.innerHTML =
+      `<span class="at">${time}</span>` +
+      `<span class="aa">${actor}</span>` +
+      `<span class="aac">${action}</span>` +
+      `<span class="ae">${entity}</span>`;
+
+    if (isNew) {
+      feed.insertBefore(el, feed.firstChild);
+      setTimeout(() => el.classList.remove('fresh'), 2500);
+
+      // Badge
+      newCount++;
+      const badge = document.getElementById('new-badge');
+      badge.textContent = newCount > 9 ? '9+' : String(newCount);
+      badge.style.display = 'inline';
+      clearTimeout(badgeTimer);
+      badgeTimer = setTimeout(() => { badge.style.display = 'none'; newCount = 0; }, 3000);
+    } else {
+      feed.appendChild(el);
+    }
+
+    // Cap at 120 items
+    const all = feed.querySelectorAll('.act-item');
+    if (all.length > 120) all[all.length - 1].remove();
+  }
+
+  async function loadActivity() {
+    if (!companyId) return;
+    try {
+      const items = await get(`/companies/${companyId}/activity`);
+      const feed  = document.getElementById('feed');
+      feed.querySelectorAll('.act-item').forEach(e => e.remove());
+      if (!items.length) { document.getElementById('feed-empty').style.display = 'block'; return; }
+      items.slice(0, 60).forEach(i => addItem(i, false));
+    } catch (e) {
+      console.error('activity:', e.message);
+    }
+  }
+
+  // ── WebSocket ─────────────────────────────────────────────────────────────
+
+  function connectWS() {
+    if (ws) { try { ws.close(); } catch(_){} }
+    clearTimeout(wsTimer);
+    setDot('connecting', 'connecting');
+
+    ws = new WebSocket(`ws://127.0.0.1:3100/api/companies/${companyId}/events/ws`);
+
+    ws.onopen = () => setDot('live', 'live');
+
+    ws.onmessage = e => {
+      try {
+        const ev   = JSON.parse(e.data);
+        const type = ev.type || ev.event || '';
+
+        if (type.startsWith('heartbeat.run') || type === 'agent.status') {
+          loadDashboard();
+        }
+        if (type === 'activity.logged' && ev.data) {
+          addItem(ev.data, true);
+        }
+        if (type === 'plugin.worker.crashed') {
+          addItem({
+            actorType: 'system', actorId: 'system',
+            action: 'plugin.crashed',
+            entityType: 'plugin',
+            entityId: ev.data?.pluginId ?? '—',
+            createdAt: new Date().toISOString()
+          }, true);
+          loadDashboard();
+        }
+      } catch (_) {}
+    };
+
+    ws.onerror = () => setDot('disconnected', 'ws error');
+    ws.onclose = () => {
+      setDot('disconnected', 'reconnecting…');
+      wsTimer = setTimeout(connectWS, 5000);
+    };
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+
+  async function boot() {
+    try {
+      const companies = await get('/companies');
+      if (!companies.length) {
+        document.getElementById('loading').innerHTML =
+          '<div style="color:var(--red);font-size:13px">No companies in PRAXIS</div>';
+        return;
+      }
+
+      const sel = document.getElementById('company-selector');
+      companies.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id; o.textContent = c.name;
+        sel.appendChild(o);
+      });
+      if (companies.length > 1) sel.style.display = 'inline-block';
+
+      companyId = companies[0].id;
+      sel.value = companyId;
+
+      sel.addEventListener('change', () => {
+        companyId = sel.value;
+        prevApprovals = null;
+        loadDashboard();
+        loadActivity();
+        connectWS();
+      });
+
+      await Promise.all([loadDashboard(), loadActivity()]);
+      connectWS();
+
+      // Fallback poll
+      clearInterval(pollTimer);
+      pollTimer = setInterval(loadDashboard, 15000);
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display     = 'grid';
+
+    } catch (e) {
+      document.getElementById('loading').innerHTML = `
+        <div style="color:var(--red);font-size:13px">Cannot reach PRAXIS at localhost:3100</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:8px">Run: pnpm dev</div>
+        <button onclick="boot()" style="margin-top:16px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:6px 18px;border-radius:4px;cursor:pointer;font-family:var(--font-mono);font-size:12px;letter-spacing:.05em">RETRY</button>
+      `;
+    }
+  }
+
+  boot();
+</script>
+</body>
+</html>
