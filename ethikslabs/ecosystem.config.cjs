@@ -7,6 +7,8 @@ module.exports = {
     interpreter: 'node',
     args: '/home/ec2-user/praxis/server/src/index.ts',
     cwd: '/home/ec2-user/praxis',
+    exec_mode: 'fork',
+    instances: 1,
     env: {
       NODE_ENV: 'production',
       PORT: '3100',

@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Universal init
+
+On `/init`, follow `../../CONTROL/INIT_PROTOCOL.md`. This repo file adds local rules only; it does not own the workspace init protocol.
+
+---
+
 ## What this repo is
 
 **PRAXIS** — the EthiksLabs control plane. A fork of [paperclipai/paperclip](https://github.com/paperclipai/paperclip), configured as the governing runtime for the entire EthiksLabs 360 portfolio.

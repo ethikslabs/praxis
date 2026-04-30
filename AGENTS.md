@@ -2,6 +2,10 @@
 
 Guidance for human and AI contributors working in this repository.
 
+## 0. Universal Init
+
+On `/init`, follow `../../CONTROL/INIT_PROTOCOL.md`. This repo file adds local rules only; it does not own the workspace init protocol.
+
 ## 1. Purpose
 
 Paperclip is a control plane for AI-agent companies.
